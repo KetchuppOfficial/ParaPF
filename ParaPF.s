@@ -16,18 +16,35 @@ global ParaPF
 ;--------------------------------------------------------------------
 ParaPF:
         
-        mov [rbp - 16], rdi   ; string
-	mov [rbp - 24], rsi   ; first arg
-	mov [rbp - 32], rdx   ;
-	mov [rbp - 40], rcx   ; ...
-	mov [rbp - 48], r8    ;
-	mov [rbp - 56], r9    ; fifth arg
-                              ; other args are with positive offset relatively to bp
-        mov rsi, [rbp - 16]    ; char *str
+        pop r10                 ; save ret_addr
+
+        push r9                 ; sixth arg
+        push r8                 ;
+        push rcx                ; ...
+        push rdx                ;
+        push rsi                ; second arg
+        push rdi                ; first arg (string)
+
+        push rbp
+        mov rbp, rsp
+
+        mov r12, 2
+
+        mov rsi, rdi            ; char *str
 
         call Process_Str
 
 return:
+        pop rbp
+
+        pop rdi 
+        pop rsi 
+        pop rdx 
+        pop rcx 
+        pop r8 
+        pop r9
+
+        push r10                ; return ret_addr
         ret
 ;--------------------------------------------------------------------
 
@@ -37,13 +54,15 @@ Process_Str:
         mov al, [rsi]
         
         cmp al, 0
-        je return
+        je .exit
 
         cmp al, '%'
         je Process_Percent
 
         call Putchar
         jmp Process_Str
+.exit:
+        ret
 ;--------------------------------------------------------------------
 
 ;--------------------------------------------------------------------
@@ -53,7 +72,8 @@ Process_Str:
         mov rdx, %1             ; number of charcters to write
                                 ; rsi already contains offset of a char
         mov rax, 1              ; syscall number
-        syscall
+
+        syscall                 ; fuckes up rcx and r11
         
 %endmacro
 ;--------------------------------------------------------------------
@@ -70,7 +90,7 @@ Process_Percent:
         mov al, [rsi]
 
         cmp al, 'd'
-                ;je .decimal
+        je .decimal
 
         cmp al, 'x'
                 ;je .hexadecimal
@@ -92,23 +112,42 @@ Process_Percent:
 
                 ;call Error
 
-.return:
+;---------------------------------
+.decimal:
+
+        mov rax, [rbp + r12 * 8]        ;
+        mov rdi, num_string             ; itoa () arguments
+        mov rbx, 10                     ;
+
+        push rsi
+        call itoa
+        pop rsi
+
+        inc r12
+
+        push rdi
+        call Strlen
+        pop rdi
+
+        push rsi
+        mov rsi, rdi
+        puts rax
+        pop rsi
+        
+        inc rsi
+
         jmp Process_Str
 ;---------------------------------
 .percent:
         call Putchar
-        jmp .return
+        jmp Process_Str
 ;---------------------------------
+
 
 ;--------------------------------------------------------------------
 itoa:
-
-        push rbp
-        mov rbp, rsp
-
-        mov rax, [rbp + 8]      ; num
-        mov rbx, [rbp + 6]      ; str
-        mov rdi, [rbp + 4]      ; radix
+        
+        push rdi
 
         cmp rax, 0
         je .zero
@@ -120,57 +159,74 @@ itoa:
 
 .zero:  mov ch, [numbers]
         mov [rbx], ch
-        inc rbx
+        inc rdi
 
         mov ch, 0
-        mov [rbx], ch
+        mov [rdi], ch
         jmp .return
 
-
-.negative: 
+.negative:
         mov ch, '-'
-        mov [rbx], ch
-        inc rbx
+        mov [rdi], ch
+        inc rdi
 
         neg rax
 
 .positive: 
         xor rdx, rdx
-        div rdi
-        mov rsi, rdx
+        div rbx
+        mov rsi, rdx                    ; <---------| SEGFAULT HERE
         mov ch, [numbers + rsi]
-        mov [rbx], ch
-        inc rbx
+        mov [rdi], ch
+        inc rdi
 
         cmp rax, 0
         jne .positive
             
         mov ch, 0
-        mov [rbx], ch
-
-        mov rdi, [rbp + 6]
-.change:
-        dec rbx
-        mov ch, [rbx]
-
-        mov ah, [rdi]
-        mov [rbx], ah
-
         mov [rdi], ch
-        inc rdi
 
-        cmp rbx, rdi
+        pop rbx
+        push rbx
+.change:
+        dec rdi
+        mov ch, [rdi]
+
+        mov ah, [rbx]
+        mov [rdi], ah
+
+        mov [rbx], ch
+        inc rbx
+
+        cmp rdi, rbx
         ja .change
       
 .return:
-        mov rax, [rbp + 6]
+        pop rdi
 
-        pop rbp
         ret
 
+;--------------------------------------------------------------------
+;--------------------------------------------------------------------
+Strlen:
+            mov al, 0
+            mov rbx, rdi
+
+            dec rdi
+.while:
+            inc rdi
+            cmp [rdi], al
+            jne .while
+
+            sub rdi, rbx
+            mov rax, rdi
+            
+            ret
 ;--------------------------------------------------------------------
 
 
 section .data
 
-numbers db      "0123456789ABCDEF"
+numbers: db      "0123456789ABCDEF"
+
+num_string:     times 32 db 0
