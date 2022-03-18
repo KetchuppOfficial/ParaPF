@@ -35,7 +35,7 @@ $ make clean
 
 # Error handling
 
-Anything that is not does not match standard syntax of `printf ()` from the standard library of C is identified as an error.
+Anything that not does not match standard syntax of `printf ()` from the standard library of C is identified as an error.
 
 An example of an error report:
 
