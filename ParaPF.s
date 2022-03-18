@@ -68,7 +68,7 @@ Process_Str:
 ;--------------------------------------------------------------------
 
 ;--------------------------------------------------------------------
-%macro  puts    1
+%macro  putsymbs    1
 
         mov rdi, 1              ; file descriptor (stdout)
         mov rdx, %1             ; number of charcters to write
@@ -80,11 +80,31 @@ Process_Str:
 %endmacro
 ;--------------------------------------------------------------------
 Putchar:
-        puts 1
+        push rcx
+        push r11
+        putsymbs 1
+        pop r11
+        pop rcx
         inc rsi
         ret
 ;--------------------------------------------------------------------
+Puts:
 
+        push rsi
+        mov rsi, rdi
+        mov ch, 0
+
+        jmp .condition
+
+.loop:
+        call Putchar
+.condition:
+        cmp [rsi], ch
+        jne .loop
+
+.exit:
+        pop rsi
+        ret
 ;--------------------------------------------------------------------
 Process_Percent:
         
@@ -95,13 +115,13 @@ Process_Percent:
         je .decimal
 
         cmp al, 'x'
-                ;je .hexadecimal
+        je .hexadecimal
 
         cmp al, 'o'
-                ;je .octal
+        je .octal
 
         cmp al, 'b'
-                ;je .binary
+        je .binary
 
         cmp al, 'c'
                 ;je .charcter
@@ -117,27 +137,26 @@ Process_Percent:
 ;---------------------------------
 .decimal:
 
-        mov rax, [rbp + r12 * 8]        ;
-        mov rdi, num_string             ; itoa () arguments
-        mov rbx, 10                     ;
+        mov rdi, 10
+        call Integer
+        jmp Process_Str
+;---------------------------------
+.binary:
 
-        push rsi
-        call itoa
-        pop rsi
+        mov rdi, 2
+        call Integer
+        jmp Process_Str
+;---------------------------------
+.octal:
 
-        inc r12
+        mov rdi, 8
+        call Integer
+        jmp Process_Str
+;---------------------------------
+.hexadecimal:
 
-        push rdi        ; make function that
-        call Strlen     ; printf symbols up to
-        pop rdi         ; '\0' char
-
-        push rsi
-        mov rsi, rdi
-        puts rax
-        pop rsi
-        
-        inc rsi
-
+        mov rdi, 16
+        call Integer
         jmp Process_Str
 ;---------------------------------
 .percent:
@@ -145,6 +164,23 @@ Process_Percent:
         jmp Process_Str
 ;---------------------------------
 
+;--------------------------------------------------------------------
+Integer:
+        mov rax, [rbp + r12 * 8]        ;
+        mov rbx, rdi                    ; radix
+        mov rdi, num_string             ; itoa () arguments
+        inc r12
+
+        push rsi
+        call itoa
+        pop rsi
+
+        call Puts
+
+        inc rsi
+
+        ret
+;--------------------------------------------------------------------
 
 ;--------------------------------------------------------------------
 itoa:
@@ -154,9 +190,11 @@ itoa:
         cmp rax, 0
         je .zero
 
-        cmp rax, 0
-        jb .negative
+        push rax
+        test rax, 00000000000000001000000000000000b
+        jne .negative
 
+        pop rax
         jmp .positive
 
 .zero:  mov ch, '0'
@@ -168,16 +206,18 @@ itoa:
         jmp .return
 
 .negative:
+        pop rax
         mov ch, '-'
         mov [rdi], ch
         inc rdi
 
         neg rax
+        and rax, 00000000000000001111111111111111b
 
 .positive: 
         xor rdx, rdx
         div rbx
-        mov rsi, rdx                    ; <---------| SEGFAULT HERE
+        mov rsi, rdx
         mov ch, [numbers + rsi]
         mov [rdi], ch
         inc rdi
@@ -190,6 +230,13 @@ itoa:
 
         pop rbx
         push rbx
+
+        mov ch, '-'
+        cmp [rbx], ch
+        jne .change
+
+        inc rbx
+
 .change:
         dec rdi
         mov ch, [rdi]
