@@ -2,10 +2,6 @@
 ;= ParaPF - para print function =;
 ;================================;
 
-;TODO!!!: %s
-
-;TODO!!! make buffer for stdout
-
 section .text
 
 global ParaPF
@@ -46,6 +42,17 @@ return:
 ;--------------------------------------------------------------------
 
 ;--------------------------------------------------------------------
+;Process_Str:
+;
+;Input:
+;       rsi - address of ParaPF format string
+;       r12 - ParaPF arguments counter
+;Output:
+;       None
+;Register that change values:
+;       al  - currect character
+;       rsi
+;--------------------------------------------------------------------
 Process_Str:
 
         mov al, [rsi]
@@ -65,83 +72,123 @@ Process_Str:
 ;--------------------------------------------------------------------
 
 ;--------------------------------------------------------------------
+;Process_Percent:
+;
+;Input:
+;       rsi - address of ParaPF format string
+;       r12 - ParaPF arguments counter
+;Output:
+;       None
+;Register that change values:
+;       rax/al - format specifier/address in the branch table
+;       rsi
+;       r12
+;--------------------------------------------------------------------
 Process_Percent:
         
         inc rsi
+        xor rax, rax
         mov al, [rsi]
+        
+        mov rax, [branch_table + rax * 8]
+        jmp rax
 
-        cmp al, 'd'
-        je .decimal
-
-        cmp al, 'x'
-        je .hexadecimal
-
-        cmp al, 'o'
-        je .octal
-
-        cmp al, 'b'
-        je .binary
-
-        cmp al, 'c'
-        je .charcter
-
-        cmp al, 's'
-        je .string
-
-        cmp al, '%'
-        je .percent
-
-                ;call Error
-
-.percent_exit:
+percent_exit:
 
         inc rsi
         inc r12
         jmp Process_Str
-;---------------------------------
-.decimal:
 
-        mov rdi, 10
-        call Integer
-        jmp .percent_exit
+;--------------------------------------------------------------------
+;Decimal, Hexadecimal_Lower, Hexadecimal_Upper, Octal, Binary:
+;
+;Input:
+;       rsi - address of ParaPF format string
+;Output:
+;       None
+;Register that change values:
+;       rbx - radix
+;       r13 - address of the string with digits in upper- or lowercase
+;--------------------------------------------------------------------      
 ;---------------------------------
-.hexadecimal:
+Decimal:
+
+        mov rbx, 10
+        mov r13, numbers_lower
+        call Integer
+        jmp percent_exit
+;---------------------------------
+Hexadecimal_Lower:
 
         mov rbx, 16
+        mov r13, numbers_lower
         call Integer
-        jmp .percent_exit
+        jmp percent_exit
 ;---------------------------------
-.octal:
+Hexadecimal_Upper:
+
+        mov rbx, 16
+        mov r13, numbers_upper
+        call Integer
+        jmp percent_exit
+;---------------------------------
+Octal:
 
         mov rbx, 8
+        mov r13, numbers_lower
         call Integer
-        jmp .percent_exit
+        jmp percent_exit
 ;---------------------------------
-.binary:
+Binary:
 
         mov rbx, 2
+        mov r13, numbers_lower
         call Integer
-        jmp .percent_exit
+        jmp percent_exit
 ;---------------------------------
-.charcter:
+
+;--------------------------------------------------------------------
+;Charcter, String:
+;
+;Input:
+;       rsi - address of ParaPF format string (saved via stack)
+;Output:
+;       None
+;Register that change values:
+;       rsi - address of character of string to print
+;--------------------------------------------------------------------
+;---------------------------------
+Charcter:
 
         push rsi
         lea rsi, [rbp + r12 * 8]        ; address of the stack cell
         call Putchar
         pop rsi
 
-        jmp .percent_exit
+        jmp percent_exit
 ;---------------------------------
-.string:
+String:
 
         push rsi
         mov rsi, [rbp + r12 * 8]        ; content of the stack cell
         call Puts
         pop rsi
 
-        jmp .percent_exit
+        jmp percent_exit
 ;---------------------------------
-.percent:
+
+;--------------------------------------------------------------------
+;Process_Percent:
+;
+;Input:
+;       rsi - address of ParaPF format string
+;Output:
+;       None
+;Register that change values:
+;       rsi
+;--------------------------------------------------------------------
+;---------------------------------
+Percent:
 
         call Putchar
         inc rsi
@@ -149,15 +196,45 @@ Process_Percent:
 ;---------------------------------
 
 ;--------------------------------------------------------------------
+;Process_Percent:
+;
+;Input:
+;       None
+;Output:
+;       None
+;Register that change values:
+;       rax - place to pop return address of Process_Str into
+;       rsi - address of the string with report on an error
+;--------------------------------------------------------------------
+;---------------------------------
+Error:
+
+        mov rsi, error_report
+        call Puts
+        pop rax                 ; ret_addr of Process_Str
+        jmp return
+;---------------------------------
+
+;--------------------------------------------------------------------
+;Process_Percent:
+;
+;Input:
+;       rsi - address of ParaPF format string
+;       rbx - radix
+;Output:
+;       None
+;Register that change values:
+;       rax - number to print
+;       rdi - a string to put charcters into
+;--------------------------------------------------------------------
 Integer:
 
-        mov rax, [rbp + r12 * 8]        ;
-        mov rbx, rdi
+        mov rax, [rbp + r12 * 8]        ; number
                                         ; radix in rbx
-        mov rdi, num_string             ; itoa () arguments
+        mov rdi, num_string             ; string to put chars into
 
         push rsi
-        call itoa
+        call Itoa
         call Puts
         pop rsi
 
@@ -165,7 +242,23 @@ Integer:
 ;--------------------------------------------------------------------
 
 ;--------------------------------------------------------------------
-itoa:
+;Itoa:
+;
+;Input:
+;       rax - number
+;       rbx - radix (at first)
+;       rdi - address of the string to put characters into
+;       r13 - address of the string with digits in upper- or lowercase
+;Output:
+;       rsi - string with number
+;Register that change values:
+;       rax/ah - contains digits
+;       rbx - copy of rdi (to have ptr on the beginning of the string)
+;       rcx/ch - contains characters
+;       rdi
+;       r14 - contains the remainder of the division
+;--------------------------------------------------------------------
+Itoa:
         
         push rdi
 
@@ -200,9 +293,9 @@ itoa:
 .positive: 
         xor rdx, rdx
         div rbx
-        mov rsi, rdx
-        mov ch, [numbers + rsi]
-        mov [rdi], ch
+        xor r14, r14
+        mov r14, [r13 + rdx]
+        mov [rdi], r14
         inc rdi
 
         cmp rax, 0
@@ -239,6 +332,17 @@ itoa:
 ;--------------------------------------------------------------------
 
 ;--------------------------------------------------------------------
+;Putchar:
+;
+;Input:
+;       rsi - address of a character to print
+;Output:
+;       None
+;Register that change values:
+;       rax -
+;       rdi - all three register are used for syscall
+;       rdx -
+;--------------------------------------------------------------------
 Putchar:
 
         push rcx
@@ -258,6 +362,16 @@ Putchar:
 ;--------------------------------------------------------------------
 
 ;--------------------------------------------------------------------
+;Puts:
+;
+;Input:
+;       rsi - address of the string to print (must and in '\0')
+;Output:
+;       None
+;Register that change values:
+;       rcx/ch - contains '\0'
+;       rsi
+;--------------------------------------------------------------------
 Puts:
 
         mov ch, 0
@@ -276,6 +390,28 @@ Puts:
 
 section .data
 
-numbers: db      "0123456789ABCDEF"
+numbers_upper:  db "0123456789ABCDEF"
+numbers_lower:  db "0123456789abcdef"
 
 num_string:     times 32 db 0
+
+error_report:   db "Incorrect input", 0x0A, 0
+
+branch_table:
+                times ('%')             dq Error
+                                        dq Percent
+                times ('X' - '%' - 1)   dq Error
+                                        dq Hexadecimal_Upper
+                times ('b' - 'X' - 1)   dq Error
+                                        dq Binary
+                                        dq Charcter
+                                        dq Decimal
+                times ('i' - 'd' - 1)   dq Error
+                                        dq Decimal
+                times ('o' - 'i' - 1)   dq Error
+                                        dq Octal
+                times ('s' - 'o' - 1)   dq Error
+                                        dq String
+                times ('x' - 's' - 1)   dq Error
+                                        dq Hexadecimal_Lower
+                times (255 - 'x')       dq Error 
