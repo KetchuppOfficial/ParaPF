@@ -266,7 +266,9 @@ Itoa:
         je .zero
 
         push rax
-        test rax, 00000000000000001000000000000000b
+        mov r15, rax
+        mov rax, 0x0000000080000000
+        test r15, rax
         jne .negative
 
         pop rax
@@ -288,7 +290,8 @@ Itoa:
         inc rdi
 
         neg rax
-        and rax, 00000000000000001111111111111111b
+        shl rax, 32     ; zeroing out not eax part of rax
+        shr rax, 32     ;
 
 .positive: 
         xor rdx, rdx
