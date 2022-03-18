@@ -8,8 +8,8 @@
 |-----------|-------------------|
 | %d, %i    | int (decimal)     |
 | %x, %X    | int (hexadecimal) |
-| %o        | octal             |
-| %b        | binary            |
+| %o        | int (octal)       |
+| %b        | int (binary)      |
 | %c        | char              |
 | %s        | array of chars    |
 | %%        | percent character |
