@@ -9,6 +9,8 @@
 ;TODO!!!: %d, %x, %o, %b, %c, %s, %%
 ;       \n, \t, \\
 
+;TODO!!!: solve the problem of negative numbers (they are no as negative as they seem) 
+
 section .text
 
 global ParaPF
@@ -125,9 +127,9 @@ Process_Percent:
 
         inc r12
 
-        push rdi
-        call Strlen
-        pop rdi
+        push rdi        ; make function that
+        call Strlen     ; printf symbols up to
+        pop rdi         ; '\0' char
 
         push rsi
         mov rsi, rdi
@@ -157,8 +159,8 @@ itoa:
 
         jmp .positive
 
-.zero:  mov ch, [numbers]
-        mov [rbx], ch
+.zero:  mov ch, '0'
+        mov [rdi], ch
         inc rdi
 
         mov ch, 0
