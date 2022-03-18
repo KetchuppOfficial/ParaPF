@@ -267,7 +267,7 @@ Itoa:
 
         push rax
         mov r15, rax
-        mov rax, 0x0000000080000000
+        mov rax, 0x0000000080000000     ; masking the most significant bit of eax part of rax
         test r15, rax
         jne .negative
 
