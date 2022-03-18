@@ -1,2 +1,4 @@
-Objects/
+Objects/main.o
+Objects/ParaPF.o
+Objects/ParaPF.out
 Tests/
