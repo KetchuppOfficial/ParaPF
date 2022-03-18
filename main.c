@@ -9,6 +9,6 @@ int main (void)
     ParaPF ("...\n");
     ParaPF ("%c %s %d is %b, %o and even %x, and I %s %X %d %% %c%b\n", 'I', "exactly know that", 3802, 3802, 3802, 3802, "love", 3802, 100, 33, 127);
     ParaPF ("With best regards!\n");
-    
+                     
     return 0;
 }
