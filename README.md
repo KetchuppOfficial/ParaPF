@@ -14,6 +14,8 @@
 | %s        | array of chars    |
 | %%        | percent character |
 
+The other specifiers as well as the flags, precision, width and length field are not supported yet. I'm working on this.
+
 # How to bild
 
 To build and run project:
@@ -22,7 +24,7 @@ $ make
 $ make run
 ```
 
-It you want to clean all objective files:
+If you want to clean all objective files:
 ```
 $ make clean
 ```
@@ -30,3 +32,25 @@ $ make clean
 # Output example
 
 ![Output](https://github.com/KetchuppOfficial/ParaPF/blob/master/Output_Example.png)
+
+# Error handling
+
+Anything that is not does not match standard syntax of `printf ()` from the standard library of C is identified as an error.
+
+An example of an error report:
+
+``` C
+extern void ParaPF (const char *format_str, ...);
+
+int main (void)
+{
+    ParaPF ("Hello, World!\n");
+    ParaPF ("My name is ParaPF.\n");
+    ParaPF ("I can handle errors just like that:\n");
+    ParaPF ("%%%");
+    
+    return 0;
+}
+```
+
+![Report]()

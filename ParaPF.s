@@ -395,7 +395,7 @@ numbers_lower:  db "0123456789abcdef"
 
 num_string:     times 32 db 0
 
-error_report:   db "Incorrect input", 0x0A, 0
+error_report:   db 0x0A, "Incorrect input", 0x0A, 0
 
 branch_table:
                 times ('%')             dq Error

@@ -1,4 +1,4 @@
-extern void ParaPF (const char *, ...);
+extern void ParaPF (const char *format_str, ...);
 
 int main (void)
 {
