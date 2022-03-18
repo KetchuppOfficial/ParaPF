@@ -31,7 +31,7 @@ $ make clean
 
 # Output example
 
-![Output](https://github.com/KetchuppOfficial/ParaPF/blob/master/Output_Example.png)
+![Output](https://github.com/KetchuppOfficial/ParaPF/blob/master/Pictures/Output_Example.png)
 
 # Error handling
 
@@ -53,4 +53,4 @@ int main (void)
 }
 ```
 
-![Report]()
+![Report](https://github.com/KetchuppOfficial/ParaPF/blob/master/Pictures/Error_Report.png)
