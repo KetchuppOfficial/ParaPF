@@ -26,3 +26,7 @@ It you want to clean all objective files:
 ```
 $ make clean
 ```
+
+# Output example
+
+![Output]()
