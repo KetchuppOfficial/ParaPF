@@ -1,15 +1,10 @@
-;------------------------------
-; ParaPF - para print function 
-;------------------------------
+;================================;
+;= ParaPF - para print function =;
+;================================;
 
-; 1 - rdi, 2 - rsi, 3 - rdx, 4 - rcx, 5 - r8, 6 - r9, 7, 8, ... - in stack
-; rax, rcx, rdx are caller-saved, the rest are callee-saved
-; ST0 and ST7 must be empty; ST1 to ST7 must be empty on exiting a function
+;TODO!!!: %s
 
-;TODO!!!: %d, %x, %o, %b, %c, %s, %%
-;       \n, \t, \\
-
-;TODO!!!: solve the problem of negative numbers (they are no as negative as they seem) 
+;TODO!!! make buffer for stdout
 
 section .text
 
@@ -62,49 +57,13 @@ Process_Str:
         je Process_Percent
 
         call Putchar
-        jmp Process_Str
-.exit:
-        ret
-;--------------------------------------------------------------------
-
-;--------------------------------------------------------------------
-%macro  putsymbs    1
-
-        mov rdi, 1              ; file descriptor (stdout)
-        mov rdx, %1             ; number of charcters to write
-                                ; rsi already contains offset of a char
-        mov rax, 1              ; syscall number
-
-        syscall                 ; fuckes up rcx and r11
-        
-%endmacro
-;--------------------------------------------------------------------
-Putchar:
-        push rcx
-        push r11
-        putsymbs 1
-        pop r11
-        pop rcx
         inc rsi
-        ret
-;--------------------------------------------------------------------
-Puts:
-
-        push rsi
-        mov rsi, rdi
-        mov ch, 0
-
-        jmp .condition
-
-.loop:
-        call Putchar
-.condition:
-        cmp [rsi], ch
-        jne .loop
+        jmp Process_Str
 
 .exit:
-        pop rsi
         ret
+;--------------------------------------------------------------------
+
 ;--------------------------------------------------------------------
 Process_Percent:
         
@@ -124,60 +83,83 @@ Process_Percent:
         je .binary
 
         cmp al, 'c'
-                ;je .charcter
+        je .charcter
 
         cmp al, 's'
-                ;je .string
+        je .string
 
         cmp al, '%'
         je .percent
 
                 ;call Error
 
+.percent_exit:
+
+        inc rsi
+        inc r12
+        jmp Process_Str
 ;---------------------------------
 .decimal:
 
         mov rdi, 10
         call Integer
-        jmp Process_Str
-;---------------------------------
-.binary:
-
-        mov rdi, 2
-        call Integer
-        jmp Process_Str
-;---------------------------------
-.octal:
-
-        mov rdi, 8
-        call Integer
-        jmp Process_Str
+        jmp .percent_exit
 ;---------------------------------
 .hexadecimal:
 
-        mov rdi, 16
+        mov rbx, 16
         call Integer
-        jmp Process_Str
+        jmp .percent_exit
+;---------------------------------
+.octal:
+
+        mov rbx, 8
+        call Integer
+        jmp .percent_exit
+;---------------------------------
+.binary:
+
+        mov rbx, 2
+        call Integer
+        jmp .percent_exit
+;---------------------------------
+.charcter:
+
+        push rsi
+        lea rsi, [rbp + r12 * 8]        ; address of the stack cell
+        call Putchar
+        pop rsi
+
+        jmp .percent_exit
+;---------------------------------
+.string:
+
+        push rsi
+        mov rsi, [rbp + r12 * 8]        ; content of the stack cell
+        call Puts
+        pop rsi
+
+        jmp .percent_exit
 ;---------------------------------
 .percent:
+
         call Putchar
+        inc rsi
         jmp Process_Str
 ;---------------------------------
 
 ;--------------------------------------------------------------------
 Integer:
+
         mov rax, [rbp + r12 * 8]        ;
-        mov rbx, rdi                    ; radix
+        mov rbx, rdi
+                                        ; radix in rbx
         mov rdi, num_string             ; itoa () arguments
-        inc r12
 
         push rsi
         call itoa
-        pop rsi
-
         call Puts
-
-        inc rsi
+        pop rsi
 
         ret
 ;--------------------------------------------------------------------
@@ -197,7 +179,8 @@ itoa:
         pop rax
         jmp .positive
 
-.zero:  mov ch, '0'
+.zero:  
+        mov ch, '0'
         mov [rdi], ch
         inc rdi
 
@@ -223,12 +206,12 @@ itoa:
         inc rdi
 
         cmp rax, 0
-        jne .positive
-            
+        jne .positive 
+
         mov ch, 0
         mov [rdi], ch
 
-        pop rbx
+        pop rbx         ; ptr on the beginning of the string
         push rbx
 
         mov ch, '-'
@@ -249,30 +232,47 @@ itoa:
 
         cmp rdi, rbx
         ja .change
-      
+
 .return:
-        pop rdi
-
+        pop rsi
         ret
-
-;--------------------------------------------------------------------
-;--------------------------------------------------------------------
-Strlen:
-            mov al, 0
-            mov rbx, rdi
-
-            dec rdi
-.while:
-            inc rdi
-            cmp [rdi], al
-            jne .while
-
-            sub rdi, rbx
-            mov rax, rdi
-            
-            ret
 ;--------------------------------------------------------------------
 
+;--------------------------------------------------------------------
+Putchar:
+
+        push rcx
+        push r11
+        
+        mov rdi, 1              ; file descriptor (stdout)
+        mov rdx, 1              ; number of charcters to write
+                                ; rsi already contains offset of a char
+        mov rax, 1              ; syscall number
+
+        syscall                 ; fuckes up rcx and r11
+
+        pop r11
+        pop rcx
+        
+        ret
+;--------------------------------------------------------------------
+
+;--------------------------------------------------------------------
+Puts:
+
+        mov ch, 0
+        jmp .condition
+
+.loop:
+        call Putchar
+        inc rsi
+.condition:
+        cmp [rsi], ch
+        jne .loop
+
+.exit:
+        ret
+;--------------------------------------------------------------------
 
 section .data
 

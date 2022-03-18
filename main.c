@@ -2,7 +2,7 @@ extern void ParaPF (const char *, ...);
 
 int main (void)
 {
-    ParaPF ("Hello, %x World!\n", 3802);
+    ParaPF ("%d + %s = %d\n", 5, "nice cock", 7);
     
     return 0;
 }
