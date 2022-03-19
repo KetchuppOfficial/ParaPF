@@ -90,7 +90,19 @@ Process_Percent:
         xor rax, rax
         mov al, [rsi]
         
-        mov rax, [branch_table + rax * 8]
+        cmp al, 'b'
+        jb Error
+
+        cmp al, 'x'
+        ja Error
+
+        cmp al, 'X'
+        je Hexadecimal_Upper
+        
+        cmp al, '%'
+        je Percent
+        
+        mov rax, [branch_table + (rax - 'b') * 8]
         jmp rax
 
 percent_exit:
@@ -401,11 +413,6 @@ num_string:     times 32 db 0
 error_report:   db 0x0A, "Incorrect input", 0x0A, 0
 
 branch_table:
-                times ('%')             dq Error
-                                        dq Percent
-                times ('X' - '%' - 1)   dq Error
-                                        dq Hexadecimal_Upper
-                times ('b' - 'X' - 1)   dq Error
                                         dq Binary
                                         dq Charcter
                                         dq Decimal
@@ -417,4 +424,3 @@ branch_table:
                                         dq String
                 times ('x' - 's' - 1)   dq Error
                                         dq Hexadecimal_Lower
-                times (255 - 'x')       dq Error 
