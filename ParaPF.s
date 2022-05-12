@@ -277,28 +277,20 @@ Itoa:
         cmp rax, 0
         je .zero
 
-        push rax
-        mov r15, rax
-        mov rax, 0x0000000080000000     ; masking the most significant bit of eax part of rax
-        test r15, rax
+        test rax, 0x0000000080000000     ; masking the most significant bit of eax part of rax
         jne .negative
 
-        pop rax
         jmp .positive
 
 .zero:  
-        mov ch, '0'
-        mov [rdi], ch
+        mov [rdi], byte '0'
         inc rdi
 
-        mov ch, 0
-        mov [rdi], ch
+        mov [rdi], byte 0
         jmp .return
 
 .negative:
-        pop rax
-        mov ch, '-'
-        mov [rdi], ch
+        mov [rdi], byte '-'
         inc rdi
 
         neg rax
@@ -322,8 +314,7 @@ Itoa:
         pop rbx         ; ptr on the beginning of the string
         push rbx
 
-        mov ch, '-'
-        cmp [rbx], ch
+        cmp [rbx], byte '-'
         jne .change
 
         inc rbx
